@@ -53,7 +53,9 @@ services:
       # NOTE: Only set OLLAMA_HOST when you actually want to use Ollama.
       #       Remove or leave blank when using OpenAI / another cloud provider.
       - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-RogerBen/qwen3.5-35b-opus-distill:latest}
       - EDGEQUAKE_LLM_PROVIDER=${EDGEQUAKE_LLM_PROVIDER:-ollama}
+      - EDGEQUAKE_LLM_MODEL=${EDGEQUAKE_LLM_MODEL:-RogerBen/qwen3.5-35b-opus-distill:latest}
       - EDGEQUAKE_EMBEDDING_PROVIDER=${EDGEQUAKE_EMBEDDING_PROVIDER:-}
       # Vision extraction timeout (seconds). Default 600s (10 min).
       - EDGEQUAKE_VISION_TIMEOUT_SECS=${EDGEQUAKE_VISION_TIMEOUT_SECS:-600}
@@ -120,19 +122,19 @@ services:
     environment:
       - OLLAMA_HOST=0.0.0.0
     volumes:
-      - ${OLLAMA_MODELS_PATH:-~/.ollama}:/root/.ollama
+      - ${OLLAMA_MODELS_PATH:-~/.ollama/models}:/root/.ollama/models
     networks:
       - edgequake-network
     # Uncomment to enable NVIDIA GPU support:
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 5
