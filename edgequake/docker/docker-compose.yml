@@ -52,20 +52,33 @@ services:
       # On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` below.
       # NOTE: Only set OLLAMA_HOST when you actually want to use Ollama.
       #       Remove or leave blank when using OpenAI / another cloud provider.
-      - OLLAMA_HOST=${OLLAMA_HOST:-http://host.docker.internal:11434}
-      - EDGEQUAKE_LLM_PROVIDER=${EDGEQUAKE_LLM_PROVIDER:-ollama}
-      - EDGEQUAKE_EMBEDDING_PROVIDER=${EDGEQUAKE_EMBEDDING_PROVIDER:-}
+      - OLLAMA_HOST=${OLLAMA_HOST:-http://ollama:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-gemma3:12b}
+      - OLLAMA_EMBEDDING_MODEL=${OLLAMA_EMBEDDING_MODEL:-emmbeddinggemma}
+      - EDGEQUAKE_LLM_PROVIDER=ollama
+      - EDGEQUAKE_LLM_MODEL=gemma3:12b
+      - EDGEQUAKE_DEFAULT_LLM_PROVIDER=${EDGEQUAKE_DEFAULT_LLM_PROVIDER:-ollama}
+      - EDGEQUAKE_DEFAULT_LLM_MODEL=${EDGEQUAKE_DEFAULT_LLM_MODEL:-gemma3:12b}
+      - EDGEQUAKE_DEFAULT_EMBEDDING_PROVIDER=${EDGEQUAKE_DEFAULT_EMBEDDING_PROVIDER:-ollama}
+      - EDGEQUAKE_DEFAULT_EMBEDDING_MODEL=${EDGEQUAKE_DEFAULT_EMBEDDING_MODEL:-embeddinggemma}
+      - EDGEQUAKE_DEFAULT_EMBEDDING_DIMENSION=${EDGEQUAKE_DEFAULT_EMBEDDING_DIMENSION:-768}
+      - EDGEQUAKE_MODELS_CONFIG=${EDGEQUAKE_MODELS_CONFIG:-/app/models.toml}
       # Vision extraction timeout (seconds). Default 600s (10 min).
       - EDGEQUAKE_VISION_TIMEOUT_SECS=${EDGEQUAKE_VISION_TIMEOUT_SECS:-600}
       # pdfium-auto cache dir — writable by the non-root container user.
       # Override with PDFIUM_AUTO_CACHE_DIR if you mount a persistent volume.
       - PDFIUM_AUTO_CACHE_DIR=${PDFIUM_AUTO_CACHE_DIR:-/tmp/edgequake-pdfium-cache}
       - RUST_LOG=info,edgequake=debug
-    # Linux only: enable host.docker.internal resolution
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    volumes:
+      # Mount models.toml from the host so model/provider config can be changed
+      # at runtime without rebuilding the container image.
+      # Override the path via EDGEQUAKE_MODELS_CONFIG env var if you prefer a
+      # custom location (e.g. EDGEQUAKE_MODELS_CONFIG=/app/models.toml).
+      - ${EDGEQUAKE_MODELS_CONFIG_PATH:-../models.toml}:/app/models.toml:ro
     depends_on:
       postgres:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     networks:
       - edgequake-network
@@ -108,6 +121,36 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+  # Ollama — local LLM inference server
+  # Models are loaded from the host's ~/.ollama directory, so no re-download is needed.
+  # GPU support: requires nvidia-container-toolkit on Linux (see commented block below)
+  ollama:
+    image: ollama/ollama:latest
+    container_name: edgequake-ollama
+    restart: unless-stopped
+    # No host port binding — reachable only within the edgequake-network as "ollama:11434".
+    # This avoids conflicts with a native Ollama installation on the host.
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    volumes:
+      - ${OLLAMA_MODELS_PATH:-~/.ollama/models}:/root/.ollama/models
+    networks:
+      - edgequake-network
+    # Uncomment to enable NVIDIA GPU support:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
 
   # PostgreSQL with pgvector and Apache AGE extensions
   postgres:

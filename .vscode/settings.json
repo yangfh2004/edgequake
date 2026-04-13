@@ -7,8 +7,8 @@
     "**/.venv": true,
     "**/__pycache__": true,
     "**/dist": true,
-    "**/build": true
-    ,"**/vendor": true
+    "**/build": true,
+    "**/vendor": true,
     "**/zz_test_docs": true,
     "**/zz-explore": true,
     "**/logs": true,
@@ -23,8 +23,8 @@
     "**/target/**": true,
     "**/lightrag_webui/node_modules/**": true,
     "**/lightrag_webui/.bun/**": true,
-    "**/target": true
-    ,"**/vendor/**": true
+    "**/target": true,
+    "**/vendor/**": true,
     "**/zz_test_docs/**": true,
     "**/zz-explore/**": true,
     "**/logs/**": true,
@@ -38,8 +38,8 @@
     "**/*.code-search": true,
     "**/target": true,
     "**/dist": true,
-    "**/build": true
-    ,"**/vendor": true
+    "**/build": true,
+    "**/vendor": true,
     "**/zz_test_docs": true,
     "**/zz-explore": true,
     "**/logs": true,
@@ -52,7 +52,7 @@
   "php.executablePath": "/usr/bin/php",
   "rust-analyzer.cargo.buildScripts.enable": true,
   "rust-analyzer.procMacro.enable": true,
-  "rust-analyzer.checkOnSave.command": "check",
+  "rust-analyzer.checkOnSave": true,
   "rust-analyzer.cargo.allFeatures": true,
   "rust-analyzer.files.excludeDirs": [
     "target",
@@ -72,10 +72,12 @@
   "explorer.confirmDragAndDrop": false,
   "explorer.confirmDelete": false,
   "git.autofetch": true,
-  "typescript.tsdk": "lightrag_webui/node_modules/typescript/lib",
+  "[javascript]": {
+    "js/ts.tsdk.path": "lightrag_webui/node_modules/typescript/lib"
+  },
   "chat.tools.terminal.ignoreDefaultAutoApproveRules": true,
   "chat.tools.eligibleForAutoApproval": {
-    "execute/*": true
+    "changes": true
   },
   "chat.tools.terminal.autoApprove": {
     "/^git log --oneline -15 \\| cat$/": {
